@@ -1,7 +1,7 @@
 let tasks = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadTasks(); // Load tasks from JSON file on page load
+    loadTasks(); // Load tasks from local storage on page load
 
     const functionalForm = document.getElementById('functionalForm');
     const technicalForm = document.getElementById('technicalForm');
@@ -19,31 +19,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-async function loadTasks() {
-    try {
-        const response = await fetch('tasks.json');
-        if (!response.ok) {
-            throw new Error('Failed to load tasks');
-        }
-        tasks = await response.json();
-        populateTables(); // Populate tables after loading tasks
-    } catch (error) {
-        console.error('Error loading tasks:', error);
+function loadTasks() {
+    const storedTasks = localStorage.getItem('tasks');
+    if (storedTasks) {
+        tasks = JSON.parse(storedTasks);
+        populateTables(); // Populate tables with stored tasks
     }
 }
 
-async function saveTasks() {
-    try {
-        await fetch('tasks.json', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(tasks),
-        });
-    } catch (error) {
-        console.error('Error saving tasks:', error);
-    }
+function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
 }
 
 function addTask(type) {
@@ -58,7 +43,7 @@ function addTask(type) {
     task.taskId = getNextTaskId(type);
 
     tasks.push(task); // Add new task to tasks array
-    saveTasks(); // Save tasks to JSON file
+    saveTasks(); // Save tasks to local storage
     populateTables(); // Update tables with new task
 }
 
