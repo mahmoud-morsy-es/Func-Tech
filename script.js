@@ -64,15 +64,18 @@ function populateFunctionalTable() {
 
     tasks.filter(task => task.taskId.startsWith('F')).forEach(task => {
         const newRow = functionalTable.insertRow();
-        Object.values(task).forEach(value => {
+        Object.keys(task).forEach(key => {
             const cell = newRow.insertCell();
-            if (typeof value === 'string' && value.startsWith('data:')) {
-                const fileLink = document.createElement('a');
-                fileLink.href = value;
-                fileLink.textContent = 'Download File';
-                cell.appendChild(fileLink);
+            if (key === 'taskDocumentation') {
+                if (task[key].startsWith('data:')) {
+                    const fileLink = document.createElement('a');
+                    fileLink.href = task[key];
+                    fileLink.textContent = 'Download File';
+                    fileLink.download = 'document.pdf'; // Example: Set the default filename for download
+                    cell.appendChild(fileLink);
+                }
             } else {
-                cell.textContent = value;
+                cell.textContent = task[key];
             }
         });
 
@@ -91,15 +94,18 @@ function populateTechnicalTable() {
 
     tasks.filter(task => task.taskId.startsWith('T')).forEach(task => {
         const newRow = technicalTable.insertRow();
-        Object.values(task).forEach(value => {
+        Object.keys(task).forEach(key => {
             const cell = newRow.insertCell();
-            if (typeof value === 'string' && value.startsWith('data:')) {
-                const fileLink = document.createElement('a');
-                fileLink.href = value;
-                fileLink.textContent = 'Download File';
-                cell.appendChild(fileLink);
+            if (key === 'taskDocumentation') {
+                if (task[key].startsWith('data:')) {
+                    const fileLink = document.createElement('a');
+                    fileLink.href = task[key];
+                    fileLink.textContent = 'Download File';
+                    fileLink.download = 'document.pdf'; // Example: Set the default filename for download
+                    cell.appendChild(fileLink);
+                }
             } else {
-                cell.textContent = value;
+                cell.textContent = task[key];
             }
         });
 
