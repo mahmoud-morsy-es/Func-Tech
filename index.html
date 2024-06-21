@@ -26,20 +26,20 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                <!-- Existing data rows will go here -->
+            <tbody id="functionalList">
+                <!-- Existing and dynamically added rows will go here -->
             </tbody>
         </table>
         <h3>Add New Task</h3>
-        <form id="functionalForm">
-            <input type="text" name="taskId" placeholder="Task ID" required>
+        <form id="functionalForm" class="task-form" enctype="multipart/form-data">
+            <input type="hidden" name="taskId">
             <select name="project" required>
                 <option value="UMQR">UMQR</option>
                 <option value="Tanmiah">Tanmiah</option>
             </select>
             <input type="text" name="taskName" placeholder="Task Name" required>
             <input type="text" name="taskDescription" placeholder="Task Description" required>
-            <input type="file" name="taskDocumentation" placeholder="Task Documentation" required>
+            <input type="file" name="taskDocumentation" required>
             <select name="responsiblePerson" required>
                 <option value="Reem Ali">Reem Ali</option>
                 <option value="Tarek Elghalban">Tarek Elghalban</option>
@@ -49,10 +49,10 @@
                 <option value="Mohie Mondy">Mohie Mondy</option>
                 <option value="Islam Okasha">Islam Okasha</option>
             </select>
-            <input type="date" name="internalDeadline" placeholder="Internal Deadline" required>
-            <input type="date" name="userDeadline" placeholder="User Deadline" required>
+            <input type="date" name="internalDeadline" required>
+            <input type="date" name="userDeadline" required>
             <input type="text" name="status" placeholder="Status" required>
-            <input type="text" name="changingStatusDate" placeholder="Changing Status Date" required>
+            <input type="date" name="changingStatusDate" required>
             <button type="submit">Add Task</button>
         </form>
     </section>
@@ -71,24 +71,24 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                <!-- Existing data rows will go here -->
+            <tbody id="technicalList">
+                <!-- Existing and dynamically added rows will go here -->
             </tbody>
         </table>
         <h3>Add New Task</h3>
-        <form id="technicalForm">
-            <input type="text" name="taskId" placeholder="Task ID" required>
+        <form id="technicalForm" class="task-form">
+            <input type="hidden" name="taskId">
             <select name="functionalTaskId" required>
-                <!-- Options will be dynamically populated -->
+                <!-- Options will be populated dynamically -->
             </select>
             <select name="responsiblePerson" required>
                 <option value="Mahmoud Morsy">Mahmoud Morsy</option>
                 <option value="Ahmed Abo Zaid">Ahmed Abo Zaid</option>
                 <option value="Nour">Nour</option>
             </select>
-            <input type="date" name="estimateDeadline" placeholder="Estimate Deadline" required>
+            <input type="date" name="estimateDeadline" required>
             <input type="text" name="status" placeholder="Status" required>
-            <input type="text" name="changingStatusDate" placeholder="Changing Status Date" required>
+            <input type="date" name="changingStatusDate" required>
             <button type="submit">Add Task</button>
         </form>
     </section>
