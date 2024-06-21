@@ -1,6 +1,8 @@
 let tasks = [];
 
 document.addEventListener('DOMContentLoaded', function () {
+    loadTasks(); // Load tasks from JSON file on page load
+
     const functionalForm = document.getElementById('functionalForm');
     const technicalForm = document.getElementById('technicalForm');
 
@@ -15,9 +17,34 @@ document.addEventListener('DOMContentLoaded', function () {
         addTask('technical');
         technicalForm.reset();
     });
-
-    loadTasks();
 });
+
+async function loadTasks() {
+    try {
+        const response = await fetch('tasks.json');
+        if (!response.ok) {
+            throw new Error('Failed to load tasks');
+        }
+        tasks = await response.json();
+        populateTables(); // Populate tables after loading tasks
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+    }
+}
+
+async function saveTasks() {
+    try {
+        await fetch('tasks.json', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(tasks),
+        });
+    } catch (error) {
+        console.error('Error saving tasks:', error);
+    }
+}
 
 function addTask(type) {
     const form = type === 'functional' ? document.getElementById('functionalForm') : document.getElementById('technicalForm');
@@ -30,9 +57,9 @@ function addTask(type) {
 
     task.taskId = getNextTaskId(type);
 
-    tasks.push(task);
-    saveTasks();
-    populateTables();
+    tasks.push(task); // Add new task to tasks array
+    saveTasks(); // Save tasks to JSON file
+    populateTables(); // Update tables with new task
 }
 
 function getNextTaskId(type) {
@@ -41,20 +68,9 @@ function getNextTaskId(type) {
     return `${taskIdPrefix}${taskIdCounter.toString().padStart(2, '0')}`;
 }
 
-function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-}
-
-function loadTasks() {
-    const storedTasks = localStorage.getItem('tasks');
-    tasks = storedTasks ? JSON.parse(storedTasks) : [];
-    populateTables();
-}
-
 function populateTables() {
     populateFunctionalTable();
     populateTechnicalTable();
-    populateFunctionalTaskIdDropdown();
 }
 
 function populateFunctionalTable() {
@@ -108,21 +124,6 @@ function populateTechnicalTable() {
         editButton.className = 'edit';
         editButton.addEventListener('click', () => editTask(task.taskId));
         actionsCell.appendChild(editButton);
-    });
-}
-
-function populateFunctionalTaskIdDropdown() {
-    const functionalTasks = tasks.filter(task => task.taskId.startsWith('F'));
-    const technicalForm = document.getElementById('technicalForm');
-    const functionalTaskIdSelect = technicalForm.querySelector('select[name="functionalTaskId"]');
-    
-    functionalTaskIdSelect.innerHTML = '';
-    
-    functionalTasks.forEach(task => {
-        const option = document.createElement('option');
-        option.value = task.taskId;
-        option.textContent = task.taskId;
-        functionalTaskIdSelect.appendChild(option);
     });
 }
 
