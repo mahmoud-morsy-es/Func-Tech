@@ -1,4 +1,3 @@
-/* styles.css */
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
@@ -12,8 +11,6 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
-    table-layout: fixed;
-    word-wrap: break-word;
 }
 
 th, td {
@@ -26,7 +23,7 @@ th {
     background-color: #f2f2f2;
 }
 
-form {
+.task-form {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -34,7 +31,9 @@ form {
     max-width: 100%;
 }
 
-form input, form select, form button {
+.task-form input,
+.task-form select,
+.task-form button {
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -42,20 +41,46 @@ form input, form select, form button {
     min-width: 150px;
 }
 
-form button {
-    background-color: #4CAF50;
+.task-form button {
+    background-color: #007bff;
     color: white;
     cursor: pointer;
 }
 
-form button:hover {
-    background-color: #45a049;
+.task-form button:hover {
+    background-color: #0056b3;
 }
 
 button.edit, button.save {
     background-color: #f0ad4e;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
 }
 
 button.edit:hover, button.save:hover {
     background-color: #ec971f;
+}
+
+button.clear {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+button.clear:hover {
+    background-color: #c82333;
+}
+
+a {
+    text-decoration: none;
+    color: blue;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: darkblue;
 }
