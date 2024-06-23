@@ -1,294 +1,184 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize tasks array
-    let tasks = loadTasks();
+    let tasks = [];
 
-    // DOM elements
     const functionalForm = document.getElementById('functionalForm');
     const functionalTable = document.getElementById('functionalTable').getElementsByTagName('tbody')[0];
     const technicalForm = document.getElementById('technicalForm');
     const technicalTable = document.getElementById('technicalTable').getElementsByTagName('tbody')[0];
-
-    // Event listeners for form submissions
-    functionalForm.addEventListener('submit', function (e) {
+    const API_BASE_URL = 'https://task-coordination-proj.vercel.app';
+  
+    
+    functionalForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        addTaskToTable(functionalTable, functionalForm, true); // true indicates functional team
+        const task = await addTaskToTable(functionalForm, true);
+        await saveTask(task);
     });
 
-    technicalForm.addEventListener('submit', function (e) {
+    technicalForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        addTaskToTable(technicalTable, technicalForm, false); // false indicates technical team
+        const task = await addTaskToTable(technicalForm, false);
+        await saveTask(task);
     });
 
-    // Load tasks from localStorage
-    function loadTasks() {
-        const storedTasks = localStorage.getItem('tasks');
-        return storedTasks ? JSON.parse(storedTasks) : [];
+    async function loadTasks() {
+        try {
+            const response = await fetch('${API_BASE_URL}/tasks');
+            if (!response.ok) {
+                throw new Error('Failed to fetch tasks');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading tasks:', error);
+            return [];
+        }
     }
 
-    // Save tasks to localStorage
-    function saveTasks() {
-        localStorage.setItem('tasks', JSON.stringify(tasks));
+    async function saveTask(task) {
+        try {
+            const formData = new FormData();
+            for (const key in task) {
+                formData.append(key, task[key]);
+            }
+
+            const response = await fetch('${API_BASE_URL}/tasks', { method: 'POST', body: formData });
+
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                throw new Error(`Failed to save task: ${errorMessage}`);
+            }
+
+            const savedTask = await response.json();
+            tasks.push(savedTask);
+            populateTables();
+            functionalForm.reset();
+            technicalForm.reset();
+        } catch (error) {
+            console.error('Error saving task:', error);
+        }
     }
 
-    // Add task to respective table and localStorage
-    function addTaskToTable(table, form, isFunctionalTeam) {
+    async function addTaskToTable(form, isFunctionalTeam) {
         const formData = new FormData(form);
         const task = {};
 
         formData.forEach((value, key) => {
             if (key === 'taskDocumentation') {
-                const file = value instanceof File ? value : null; // Store file object directly
-                task['taskDocumentationName'] = file ? file.name : ''; // Store file name
-                task['taskDocumentationType'] = file ? file.type : ''; // Store file type
-                task['taskDocumentationKey'] = `taskDoc_${Date.now()}_${file.name}`; // Unique key for localStorage
-                saveFileToLocalStorage(task['taskDocumentationKey'], file); // Save file to localStorage
+                const file = value instanceof File ? value : null;
+                task['taskDocumentation'] = file;
             } else {
                 task[key] = value;
             }
         });
 
-        task.taskId = getNextTaskId(isFunctionalTeam); // Generate task ID
-
-        tasks.push(task); // Add task to tasks array
-        saveTasks(); // Save tasks to localStorage
-        populateTables(); // Update tables with new task
-        form.reset(); // Reset form fields
+        task.taskId = getNextTaskId(isFunctionalTeam);
+        return task;
     }
 
-    // Save file to localStorage
-    function saveFileToLocalStorage(key, file) {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            localStorage.setItem(key, event.target.result);
-        };
-        reader.readAsDataURL(file);
-    }
-
-    // Retrieve file from localStorage
-    function retrieveFileFromLocalStorage(key) {
-        const fileData = localStorage.getItem(key);
-        if (fileData) {
-            const blob = dataURItoBlob(fileData);
-            return new File([blob], key.split('_')[2], { type: blob.type });
-        }
-        return null;
-    }
-
-    // Convert data URI to Blob
-    function dataURItoBlob(dataURI) {
-        const byteString = atob(dataURI.split(',')[1]);
-        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-        }
-        return new Blob([ab], { type: mimeString });
-    }
-
-    // Generate next task ID based on team type
     function getNextTaskId(isFunctionalTeam) {
         const prefix = isFunctionalTeam ? 'FT' : 'TT';
-        let maxId = 0;
-
-        // Find maximum task ID with the specified prefix
-        tasks.forEach(task => {
-            const taskId = task.taskId;
-            if (taskId && typeof taskId === 'string' && taskId.startsWith(prefix)) {
-                const numericPart = parseInt(taskId.slice(2), 10); // Extract numeric part
-                if (!isNaN(numericPart) && numericPart > maxId) {
-                    maxId = numericPart;
-                }
-            }
-        });
+        const tasksWithPrefix = tasks.filter(task => task.taskId && task.taskId.startsWith(prefix));
+        const maxId = tasksWithPrefix.reduce((max, task) => {
+            const numericPart = parseInt(task.taskId.slice(2), 10);
+            return numericPart > max ? numericPart : max;
+        }, 0);
 
         const nextId = maxId + 1;
         return `${prefix}${nextId.toString().padStart(2, '0')}`;
     }
 
-    // Populate both functional and technical team tables
-    function populateTables() {
-        populateTable('functionalTable', task => [
-            task.taskId,
-            task.project,
-            task.taskName,
-            task.taskDescription,
-            createFileLink(task.taskDocumentationKey, task.taskDocumentationName), // Use file key and name
-            task.responsiblePerson,
-            task.internalDeadline,
-            task.userDeadline,
-            task.status,
-            task.changingStatusDate
-        ]);
+    async function populateTables() {
+        try {
+            tasks = await loadTasks();
 
-        populateTable('technicalTable', task => [
-            task.taskId,
-            task.functionalTaskId || '', // Ensure empty string if no functional task ID
-            task.responsiblePerson,
-            task.estimateDeadline,
-            task.status,
-            task.changingStatusDate
-        ]);
+            populateTable(functionalTable, task => [
+                task.taskId,
+                task.project,
+                task.taskName,
+                task.taskDescription,
+                createDownloadLink(task.taskDocumentationKey, task.taskDocumentationName),
+                task.responsiblePerson,
+                task.internalDeadline,
+                task.userDeadline,
+            ], 'FT');
+
+            populateTable(technicalTable, task => [
+                task.taskId,
+                task.functionalTaskId,
+                task.responsiblePerson,
+                task.estimateDeadline,
+            ], 'TT');
+
+            populateFunctionalTaskIdDropdown();
+        } catch (error) {
+            console.error('Error populating tables:', error);
+        }
     }
 
-    // Populate a specific table
-    function populateTable(tableId, getRowData) {
-        const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+    function populateTable(table, getRowData, prefix) {
         table.innerHTML = '';
 
-        tasks.filter(task => {
-            return tableId === 'functionalTable' ? (task.taskId && task.taskId.startsWith('FT')) : (task.taskId && task.taskId.startsWith('TT'));
-        }).forEach(task => {
+        tasks.filter(task => task.taskId && task.taskId.startsWith(prefix)).forEach(task => {
             const rowData = getRowData(task);
             const newRow = table.insertRow();
 
-            rowData.forEach((value, index) => {
+            rowData.forEach(value => {
                 const cell = newRow.insertCell();
-                if (index === 4 && typeof value === 'object' && value.key && value.name) {
-                    const fileLink = document.createElement('a');
-                    fileLink.href = createFileURL(value.key); // Create download URL
-                    fileLink.textContent = value.name; // Display file name as link text
-                    fileLink.download = value.name; // Set file name as download attribute
-                    cell.appendChild(fileLink);
-                } else {
+                if (typeof value === 'string') {
                     cell.textContent = value;
+                } else {
+                    cell.appendChild(value);
                 }
             });
 
             const actionsCell = newRow.insertCell();
-            const editButton = document.createElement('button');
-            editButton.textContent = 'Edit';
-            editButton.className = 'edit';
-            editButton.addEventListener('click', () => editTask(task.taskId, tableId, newRow));
-            actionsCell.appendChild(editButton);
-
-            const clearButton = document.createElement('button');
-            clearButton.textContent = 'Clear';
-            clearButton.className = 'clear';
-            clearButton.addEventListener('click', () => clearTask(task.taskId, tableId));
-            actionsCell.appendChild(clearButton);
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.className = 'delete';
+            deleteButton.addEventListener('click', () => deleteTask(task.taskId));
+            actionsCell.appendChild(deleteButton);
         });
     }
 
-    // Clear a task
-    function clearTask(taskId, tableId) {
-        const confirmed = confirm('Are you sure you want to clear this task?');
-        if (!confirmed) return;
+    function populateFunctionalTaskIdDropdown() {
+        const functionalTaskIds = tasks.filter(task => task.taskId && task.taskId.startsWith('FT')).map(task => task.taskId);
+        const functionalTaskIdSelect = technicalForm.querySelector('select[name="functionalTaskId"]');
+        functionalTaskIdSelect.innerHTML = '';
 
-        const taskIndex = tasks.findIndex(task => task.taskId === taskId);
-        if (taskIndex !== -1) {
-            tasks.splice(taskIndex, 1); // Remove task from array
-            deleteFileFromLocalStorage(tasks[taskIndex]['taskDocumentationKey']);
-            saveTasks(); // Save updated tasks to localStorage
-            populateTables(); // Update tables
-        } else {
-            console.error('Task not found:', taskId);
-        }
+        functionalTaskIds.forEach(taskId => {
+            const option = document.createElement('option');
+            option.value = taskId;
+            option.textContent = taskId;
+            functionalTaskIdSelect.appendChild(option);
+        });
     }
 
-    // Edit a task
-    function editTask(taskId, tableId, editRow) {
-        const confirmed = confirm('Are you sure you want to edit this task?');
-        if (!confirmed) return;
+    function createDownloadLink(fileKey, fileName) {
+        if (!fileKey) return '';
 
-        const taskIndex = tasks.findIndex(task => task.taskId === taskId);
-        if (taskIndex !== -1) {
-            const task = tasks[taskIndex];
+        const downloadLink = document.createElement('a');
+        downloadLink.textContent = fileName;
+        downloadLink.href = '${API_BASE_URL}/download/${fileKey}';
+        downloadLink.target = '_blank';
+        downloadLink.setAttribute('download', fileName);
 
-            // Update existing row with input fields for editing
-            for (let i = 0; i < editRow.cells.length - 1; i++) {
-                const cell = editRow.cells[i];
-                const value = task[Object.keys(task)[i]]; // Get corresponding task property value
-                cell.textContent = ''; // Clear cell content
+        return downloadLink;
+    }
 
-                // Create input element for editing
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = value;
-                input.setAttribute('name', Object.keys(task)[i]); // Set input name to match task property
-                cell.appendChild(input);
+    async function deleteTask(taskId) {
+        try {
+            const response = await fetch('${API_BASE_URL}/tasks/${taskId}', { method: 'DELETE' });
+            if (response.ok) {
+                tasks = tasks.filter(task => task.taskId !== taskId);
+                populateTables();
+                console.log(`Task ${taskId} deleted successfully.`);
+            } else {
+                console.error('Failed to delete task:', response.statusText);
             }
-
-            // Handle file input separately
-            const fileCell = editRow.cells[4];
-            fileCell.textContent = ''; // Clear existing file link
-
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.setAttribute('name', 'taskDocumentation'); // Set input name to match task property
-            fileCell.appendChild(fileInput);
-
-            // Add Save button if not already added
-            const saveButton = editRow.querySelector('.save');
-            if (!saveButton) {
-                const actionsCell = editRow.cells[editRow.cells.length - 1];
-                const saveButton = document.createElement('button');
-                saveButton.textContent = 'Save';
-                saveButton.className = 'save';
-                saveButton.addEventListener('click', () => saveEditedTask(taskId, tableId, editRow));
-                actionsCell.appendChild(saveButton);
-            }
-        } else {
-            console.error('Task not found:', taskId);
+        } catch (error) {
+            console.error('Error deleting task:', error);
         }
     }
 
-    // Save edited task
-    function saveEditedTask(taskId, tableId, editRow) {
-        const taskIndex = tasks.findIndex(task => task.taskId === taskId);
-        if (taskIndex !== -1) {
-            const editedTask = tasks[taskIndex];
-            const cells = editRow.cells;
-
-            // Update editedTask object with input values
-            for (let i = 0; i < cells.length - 1; i++) { // Exclude last cell (actions cell)
-                const input = cells[i].querySelector('input');
-                const key = input.getAttribute('name');
-                if (key === 'taskDocumentation') {
-                    const fileInput = cells[i].querySelector('input[type="file"]');
-                    if (fileInput.files.length > 0) {
-                        const file = fileInput.files[0];
-                        editedTask['taskDocumentationName'] = file.name; // Update file name
-                        editedTask['taskDocumentationType'] = file.type; // Update file type
-                        editedTask['taskDocumentationKey'] = `taskDoc_${Date.now()}_${file.name}`; // New key for localStorage
-                        saveFileToLocalStorage(editedTask['taskDocumentationKey'], file); // Save new file to localStorage
-                    }
-                } else {
-                    editedTask[key] = input.value;
-                }
-            }
-
-            // Update tasks array with edited task
-            tasks[taskIndex] = editedTask;
-            saveTasks(); // Save updated tasks to localStorage
-            populateTables(); // Re-populate tables with updated data
-        } else {
-            console.error('Task not found:', taskId);
-        }
-    }
-
-    // Delete file from localStorage
-    function deleteFileFromLocalStorage(key) {
-        localStorage.removeItem(key);
-    }
-
-    // Create file download URL
-    function createFileURL(key) {
-        const file = retrieveFileFromLocalStorage(key);
-        if (file) {
-            return URL.createObjectURL(file);
-        }
-        return '#';
-    }
-
-    // Create file link object
-    function createFileLink(key, name) {
-        if (key && name) {
-            return { key, name };
-        }
-        return '';
-    }
-
-    // Initialize tables with loaded tasks
     populateTables();
 });
+//UPDATED
